@@ -1,13 +1,13 @@
 <template>
-  <div class="manga-card" @click="handleClick">
-    <img :src="manga.coverUrl || '/placeholder.png'" class="manga-cover" />
+  <button class="manga-card" @click="handleClick" type="button">
+    <img :src="manga.coverUrl || '/placeholder.png'" :alt="manga.title || '漫画封面'" class="manga-cover" loading="lazy" width="200" height="240" />
     <div class="manga-info">
       <h3 class="manga-title">{{ manga.title }}</h3>
       <p class="manga-author">{{ manga.author }}</p>
       <p v-if="manga.category" class="manga-category">{{ manga.category }}</p>
       <p v-if="manga.tip" class="manga-tip">{{ manga.tip }}</p>
     </div>
-  </div>
+  </button>
 </template>
 
 <script setup>
@@ -40,6 +40,10 @@ function handleClick() {
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.3s, box-shadow 0.3s;
+  border: none;
+  padding: 0;
+  text-align: left;
+  width: 100%;
 }
 
 .manga-card:hover {

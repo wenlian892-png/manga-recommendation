@@ -36,6 +36,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { mangaApi } from '@/api/manga'
+import { ElMessage } from 'element-plus'
 import MangaCard from '@/components/MangaCard.vue'
 
 const route = useRoute()
@@ -69,7 +70,10 @@ async function fetchList() {
     list.value = res.data.records || []
     pagination.total = res.data.total || 0
   } catch (e) {
-    console.error(e)
+    console.error('获取漫画列表失败:', e)
+    ElMessage.error('获取漫画列表失败，请稍后重试')
+    list.value = []
+    pagination.total = 0
   } finally {
     loading.value = false
   }
@@ -160,5 +164,29 @@ onMounted(() => {
   margin-top: 30px;
   display: flex;
   justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .manga-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .page-header h1 {
+    font-size: 24px;
+  }
+  
+  .filters {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .filters .el-input,
+  .filters .el-select {
+    width: 100% !important;
+  }
+  
+  .filters .el-button {
+    width: 100%;
+  }
 }
 </style>

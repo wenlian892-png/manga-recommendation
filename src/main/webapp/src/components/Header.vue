@@ -9,15 +9,17 @@
           v-model="searchKeyword"
           placeholder="搜索漫画..."
           class="search-input"
+          @input="debouncedHandleSearch"
           @keyup.enter="handleSearch"
+          autocomplete="off"
         >
           <template #append>
-            <el-button :icon="Search" @click="handleSearch" />
+            <el-button :icon="Search" @click="handleSearch" aria-label="搜索" />
           </template>
         </el-input>
       </div>
 
-      <div class="header-nav">
+      <div class="header-nav" v-if="!isMobile">
         <router-link to="/" class="nav-item">首页</router-link>
         <router-link to="/category" class="nav-item">分类</router-link>
         <router-link to="/leaderboard" class="nav-item">排行榜</router-link>
@@ -29,22 +31,41 @@
       </div>
 
       <div class="header-right">
-        <template v-if="userStore.isLoggedIn">
-          <el-dropdown @command="handleUserCommand">
-            <span class="user-info">
-              <el-avatar :size="32" :icon="UserFilled" />
-              <span class="username">{{ userStore.currentUser?.username }}</span>
-            </span>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="profile">个人中心</el-dropdown-item>
-                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </template>
+        <el-dropdown v-if="isMobile" @command="handleMobileMenuCommand">
+          <el-button :icon="Menu" aria-label="菜单" />
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="home">首页</el-dropdown-item>
+              <el-dropdown-item command="category">分类</el-dropdown-item>
+              <el-dropdown-item command="leaderboard">排行榜</el-dropdown-item>
+              <el-dropdown-item command="recommend">推荐</el-dropdown-item>
+              <el-dropdown-item command="forum">论坛</el-dropdown-item>
+              <el-dropdown-item v-if="userStore.isAdmin" command="admin">管理后台</el-dropdown-item>
+              <el-dropdown-item v-if="userStore.isLoggedIn" command="profile">个人中心</el-dropdown-item>
+              <el-dropdown-item v-if="userStore.isLoggedIn" command="logout" divided>退出登录</el-dropdown-item>
+              <el-dropdown-item v-else command="login">登录/注册</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        
         <template v-else>
-          <el-button type="primary" @click="showLoginDialog = true">登录</el-button>
+          <template v-if="userStore.isLoggedIn">
+            <el-dropdown @command="handleUserCommand">
+              <span class="user-info">
+                <el-avatar :size="32" :icon="UserFilled" />
+                <span class="username">{{ userStore.currentUser?.username }}</span>
+              </span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+                  <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </template>
+          <template v-else>
+            <el-button type="primary" @click="showLoginDialog = true">登录</el-button>
+          </template>
         </template>
       </div>
     </div>
@@ -52,10 +73,10 @@
     <el-dialog v-model="showLoginDialog" title="登录" width="400px">
       <el-form :model="loginForm" label-width="60px">
         <el-form-item label="用户名">
-          <el-input v-model="loginForm.username" placeholder="请输入用户名" />
+          <el-input v-model="loginForm.username" placeholder="请输入用户名" autocomplete="username" />
         </el-form-item>
         <el-form-item label="密码">
-          <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" @keyup.enter="handleLogin" />
+          <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" @keyup.enter="handleLogin" autocomplete="current-password" inputmode="password" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -68,10 +89,10 @@
     <el-dialog v-model="showRegisterDialog" title="注册" width="400px">
       <el-form :model="registerForm" label-width="60px">
         <el-form-item label="用户名">
-          <el-input v-model="registerForm.username" placeholder="请输入用户名" />
+          <el-input v-model="registerForm.username" placeholder="请输入用户名" autocomplete="username" />
         </el-form-item>
         <el-form-item label="密码">
-          <el-input v-model="registerForm.password" type="password" placeholder="请输入密码" />
+          <el-input v-model="registerForm.password" type="password" placeholder="请输入密码" autocomplete="new-password" inputmode="password" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -83,9 +104,9 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onUnmounted, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, UserFilled } from '@element-plus/icons-vue'
+import { Search, UserFilled, Menu } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import request from '@/utils/request'
@@ -96,6 +117,56 @@ const userStore = useUserStore()
 const searchKeyword = ref('')
 const showLoginDialog = ref(false)
 const showRegisterDialog = ref(false)
+
+const isMobile = computed(() => {
+  return window.innerWidth < 768
+})
+
+function handleMobileMenuCommand(command) {
+  switch (command) {
+    case 'home':
+      router.push('/')
+      break
+    case 'category':
+      router.push('/category')
+      break
+    case 'leaderboard':
+      router.push('/leaderboard')
+      break
+    case 'recommend':
+      router.push('/recommend')
+      break
+    case 'forum':
+      router.push('/forum')
+      break
+    case 'admin':
+      router.push('/admin')
+      break
+    case 'profile':
+      router.push('/profile')
+      break
+    case 'logout':
+      userStore.logout()
+      ElMessage.success('已退出登录')
+      break
+    case 'login':
+      showLoginDialog.value = true
+      break
+  }
+}
+
+let searchTimer = null
+
+function debounce(func, delay) {
+  return function() {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => {
+      func.apply(this, arguments)
+    }, delay)
+  }
+}
+
+const debouncedHandleSearch = debounce(handleSearch, 300)
 
 const loginForm = reactive({
   username: '',
@@ -108,8 +179,9 @@ const registerForm = reactive({
 })
 
 function handleSearch() {
-  if (searchKeyword.value.trim()) {
-    router.push({ name: 'Manga', query: { keyword: searchKeyword.value } })
+  const keyword = searchKeyword.value.trim()
+  if (keyword) {
+    router.push({ name: 'Manga', query: { keyword } })
   }
 }
 
@@ -127,6 +199,17 @@ async function handleLogin() {
     ElMessage.warning('请填写用户名和密码')
     return
   }
+  
+  if (loginForm.username.length < 3 || loginForm.username.length > 20) {
+    ElMessage.warning('用户名长度应在3-20个字符之间')
+    return
+  }
+  
+  if (loginForm.password.length < 6) {
+    ElMessage.warning('密码长度至少为6个字符')
+    return
+  }
+  
   try {
     const res = await request.post('/user/login', loginForm)
     userStore.setUser(res.data)
@@ -135,6 +218,7 @@ async function handleLogin() {
     loginForm.username = ''
     loginForm.password = ''
   } catch (e) {
+    ElMessage.error('登录失败，请检查用户名和密码')
   }
 }
 
@@ -143,6 +227,17 @@ async function handleRegister() {
     ElMessage.warning('请填写用户名和密码')
     return
   }
+  
+  if (registerForm.username.length < 3 || registerForm.username.length > 20) {
+    ElMessage.warning('用户名长度应在3-20个字符之间')
+    return
+  }
+  
+  if (registerForm.password.length < 6) {
+    ElMessage.warning('密码长度至少为6个字符')
+    return
+  }
+  
   try {
     const res = await request.post('/user/register', registerForm)
     userStore.setUser(res.data)
@@ -151,8 +246,15 @@ async function handleRegister() {
     registerForm.username = ''
     registerForm.password = ''
   } catch (e) {
+    ElMessage.error('注册失败，用户名可能已存在')
   }
 }
+
+onUnmounted(() => {
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+  }
+})
 </script>
 
 <style scoped>
@@ -235,5 +337,33 @@ async function handleRegister() {
 .username {
   font-size: 14px;
   color: #333;
+}
+
+@media screen and (max-width: 768px) {
+  .header-content {
+    padding: 0 10px;
+  }
+  
+  .logo-text {
+    font-size: 20px;
+  }
+  
+  .search-input {
+    width: 180px;
+  }
+  
+  .header-nav {
+    display: none;
+  }
+  
+  .header-right {
+    margin-left: 10px;
+  }
+}
+
+@media screen and (min-width: 769px) {
+  .header-nav {
+    display: flex;
+  }
 }
 </style>

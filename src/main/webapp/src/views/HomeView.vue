@@ -50,9 +50,9 @@
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { recommendApi } from '@/api/recommend'
+import { ElMessage } from 'element-plus'
 import MangaCard from '@/components/MangaCard.vue'
 
-const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(false)
 const hubData = ref({})
@@ -65,7 +65,13 @@ async function fetchRecommendHub() {
     })
     hubData.value = res.data || {}
   } catch (e) {
-    console.error(e)
+    console.error('获取推荐数据失败:', e)
+    ElMessage.error('获取推荐数据失败，请稍后重试')
+    hubData.value = {
+      hotZone: [],
+      categoryZone: [],
+      cfZone: []
+    }
   } finally {
     loading.value = false
   }
@@ -130,6 +136,24 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .manga-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .banner h1 {
+    font-size: 28px;
+  }
+  
+  .banner p {
+    font-size: 16px;
+  }
+  
+  .section h2 {
+    font-size: 20px;
+  }
 }
 
 .manga-card {
