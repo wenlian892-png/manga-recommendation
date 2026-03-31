@@ -1,0 +1,1 @@
+import{r as g}from"./index-CK37hNqM.js";const t={getMangaPage:a=>g.get("/manga/page",{params:a}),getMangaById:a=>g.get(`/manga/${a}`),getMangaChapters:a=>g.get(`/manga/${a}/chapters`)};export{t as m};
