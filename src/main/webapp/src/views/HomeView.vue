@@ -11,13 +11,7 @@
         <h2>🔥 A区 · 大家都在看</h2>
         <div v-if="!hubData.hotZone || hubData.hotZone.length === 0" class="empty">暂无数据</div>
         <div v-else class="manga-grid">
-          <div v-for="item in hubData.hotZone" :key="item.id" class="manga-card" @click="goDetail(item.id)">
-            <img :src="item.coverUrl || '/placeholder.png'" class="manga-cover" />
-            <div class="manga-info">
-              <h3 class="manga-title">{{ item.title }}</h3>
-              <p class="manga-author">{{ item.author }}</p>
-            </div>
-          </div>
+          <MangaCard v-for="item in hubData.hotZone" :key="item.id" :manga="item" />
         </div>
       </div>
 
@@ -28,13 +22,7 @@
         </div>
         <div v-else-if="!hubData.categoryZone || hubData.categoryZone.length === 0" class="empty">暂无数据</div>
         <div v-else class="manga-grid">
-          <div v-for="item in hubData.categoryZone" :key="item.id" class="manga-card" @click="goDetail(item.id)">
-            <img :src="item.coverUrl || '/placeholder.png'" class="manga-cover" />
-            <div class="manga-info">
-              <h3 class="manga-title">{{ item.title }}</h3>
-              <p class="manga-author">{{ item.author }}</p>
-            </div>
-          </div>
+          <MangaCard v-for="item in hubData.categoryZone" :key="item.id" :manga="item" />
         </div>
       </div>
 
@@ -44,14 +32,14 @@
           <p>登录后解锁 Item-CF 个性化推荐</p>
         </div>
         <div v-else class="manga-grid">
-          <div v-for="item in (hubData.cfZone && hubData.cfZone.length > 0 ? hubData.cfZone : hubData.hotZone)" :key="item.id" class="manga-card" @click="goDetail(item.id)">
-            <img :src="item.coverUrl || '/placeholder.png'" class="manga-cover" />
-            <div class="manga-info">
-              <h3 class="manga-title">{{ item.title }}</h3>
-              <p class="manga-author">{{ item.author }}</p>
-              <p class="manga-tip">{{ hubData.cfZone && hubData.cfZone.length > 0 ? '💡 因为您高分评价了相似作品，所以推荐' : '🔥 热门推荐' }}</p>
-            </div>
-          </div>
+          <MangaCard 
+            v-for="item in (hubData.cfZone && hubData.cfZone.length > 0 ? hubData.cfZone : hubData.hotZone)" 
+            :key="item.id" 
+            :manga="{
+              ...item,
+              tip: hubData.cfZone && hubData.cfZone.length > 0 ? '💡 因为您高分评价了相似作品，所以推荐' : '🔥 热门推荐'
+            }" 
+          />
         </div>
       </div>
     </template>
@@ -60,9 +48,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import request from '@/utils/request'
 import { useUserStore } from '@/stores/user'
+import { recommendApi } from '@/api/recommend'
+import MangaCard from '@/components/MangaCard.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -72,10 +60,8 @@ const hubData = ref({})
 async function fetchRecommendHub() {
   loading.value = true
   try {
-    const res = await request.get('/recommend/hub', {
-      params: userStore.isLoggedIn && userStore.currentUser
-        ? { userId: userStore.currentUser.id }
-        : {}
+    const res = await recommendApi.getRecommendHub({
+      userId: userStore.isLoggedIn && userStore.currentUser ? userStore.currentUser.id : undefined
     })
     hubData.value = res.data || {}
   } catch (e) {
@@ -85,9 +71,7 @@ async function fetchRecommendHub() {
   }
 }
 
-function goDetail(id) {
-  router.push({ name: 'MangaDetail', params: { id } })
-}
+
 
 onMounted(() => {
   fetchRecommendHub()

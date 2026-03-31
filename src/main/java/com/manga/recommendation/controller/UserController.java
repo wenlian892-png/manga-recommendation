@@ -7,6 +7,7 @@ import com.manga.recommendation.mapper.UserInfoMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,8 +19,12 @@ public class UserController {
     private UserInfoMapper userInfoMapper;
 
     @GetMapping("/profile")
-    public Result<Map<String, Object>> getProfile(@RequestHeader(value = "X-User-Id", required = false) Long userId) {
+    public Result<Map<String, Object>> getProfile(HttpServletRequest request, @RequestHeader(value = "X-User-Id", required = false) Long headerUserId) {
         Map<String, Object> data = new HashMap<>();
+        Long userId = (Long) request.getAttribute("X-User-Id");
+        if (userId == null) {
+            userId = headerUserId;
+        }
         if (userId == null) {
             data.put("loggedIn", false);
             return Result.success(data);

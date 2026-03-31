@@ -15,15 +15,8 @@
     <div v-if="loading" class="loading">加载中...</div>
     <div v-else-if="list.length === 0" class="empty">暂无数据</div>
     <div v-else class="manga-grid">
-      <div v-for="item in list" :key="item.id" class="manga-card" @click="goDetail(item.id)">
-        <img :src="item.coverUrl || '/placeholder.png'" class="manga-cover" />
-        <div class="manga-info">
-          <h3 class="manga-title">{{ item.title }}</h3>
-          <p class="manga-author">{{ item.author }}</p>
-          <p class="manga-category">{{ item.category }}</p>
+          <MangaCard v-for="item in list" :key="item.id" :manga="item" />
         </div>
-      </div>
-    </div>
 
     <div class="pagination">
       <el-pagination
@@ -41,10 +34,10 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import request from '@/utils/request'
+import { useRoute } from 'vue-router'
+import { mangaApi } from '@/api/manga'
+import MangaCard from '@/components/MangaCard.vue'
 
-const router = useRouter()
 const route = useRoute()
 
 const COMMON_CATEGORIES = ['热血', '恋爱', '冒险', '悬疑', '运动']
@@ -66,14 +59,12 @@ const pagination = reactive({
 async function fetchList() {
   loading.value = true
   try {
-    const res = await request.get('/manga/page', {
-      params: {
-        current: pagination.current,
-        size: pagination.size,
-        title: filters.title || null,
-        author: filters.author || null,
-        category: filters.category || null
-      }
+    const res = await mangaApi.getMangaPage({
+      current: pagination.current,
+      size: pagination.size,
+      title: filters.title || null,
+      author: filters.author || null,
+      category: filters.category || null
     })
     list.value = res.data.records || []
     pagination.total = res.data.total || 0
@@ -84,9 +75,7 @@ async function fetchList() {
   }
 }
 
-function goDetail(id) {
-  router.push({ name: 'MangaDetail', params: { id } })
-}
+
 
 onMounted(() => {
   if (route.query.keyword) {

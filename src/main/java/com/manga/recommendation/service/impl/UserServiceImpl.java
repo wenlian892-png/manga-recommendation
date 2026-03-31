@@ -9,17 +9,18 @@ import com.manga.recommendation.vo.RegisterRequest;
 import com.manga.recommendation.vo.UserVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
+import com.manga.recommendation.common.JwtUtils;
 
 @Service
 public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserInfoMapper userInfoMapper;
+
+    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Override
     public UserVO register(RegisterRequest request) {
@@ -33,16 +34,16 @@ public class UserServiceImpl implements UserService {
 
         UserInfo userInfo = new UserInfo();
         userInfo.setUsername(request.getUsername());
-        userInfo.setPassword(hashPassword(request.getPassword()));
+        userInfo.setPassword(passwordEncoder.encode(request.getPassword()));
         userInfo.setRole(0);
-        userInfo.setStatus(0);
+        userInfo.setStatus(1);
         userInfo.setCreateTime(java.time.LocalDateTime.now());
 
         userInfoMapper.insert(userInfo);
 
         UserVO userVO = new UserVO();
         BeanUtils.copyProperties(userInfo, userVO);
-        userVO.setToken(generateToken(userInfo.getId()));
+        userVO.setToken(generateToken(userInfo.getId(), userInfo.getUsername(), userInfo.getRole()));
 
         return userVO;
     }
@@ -57,17 +58,17 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("用户名或密码错误");
         }
 
-        if (!userInfo.getPassword().equals(hashPassword(request.getPassword()))) {
+        if (!passwordEncoder.matches(request.getPassword(), userInfo.getPassword())) {
             throw new RuntimeException("用户名或密码错误");
         }
 
-        if (userInfo.getStatus() != null && userInfo.getStatus() == 1) {
+        if (userInfo.getStatus() != null && userInfo.getStatus() == 0) {
             throw new RuntimeException("账号已被禁用");
         }
 
         UserVO userVO = new UserVO();
         BeanUtils.copyProperties(userInfo, userVO);
-        userVO.setToken(generateToken(userInfo.getId()));
+        userVO.setToken(generateToken(userInfo.getId(), userInfo.getUsername(), userInfo.getRole()));
 
         return userVO;
     }
@@ -83,12 +84,7 @@ public class UserServiceImpl implements UserService {
         return userVO;
     }
 
-    private String hashPassword(String password) {
-        return DigestUtils.md5DigestAsHex((password + "manga_salt").getBytes(StandardCharsets.UTF_8));
-    }
-
-    private String generateToken(Long userId) {
-        String raw = userId + "_" + System.currentTimeMillis() + "_" + UUID.randomUUID().toString();
-        return DigestUtils.md5DigestAsHex(raw.getBytes(StandardCharsets.UTF_8));
+    private String generateToken(Long userId, String username, Integer role) {
+        return JwtUtils.generateToken(userId, username, role);
     }
 }

@@ -103,7 +103,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Loading, Reading, Collection, Star } from '@element-plus/icons-vue'
-import request from '@/utils/request'
+import { mangaApi } from '@/api/manga'
+import { interactionApi } from '@/api/interaction'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
@@ -122,7 +123,7 @@ const selectedChapter = ref(null)
 async function fetchDetail() {
   loading.value = true
   try {
-    const res = await request.get(`/manga/detail/${route.params.id}`)
+    const res = await mangaApi.getMangaDetail(route.params.id)
     manga.value = res.data
     if (userStore.isLoggedIn) {
       checkCollect()
@@ -137,9 +138,7 @@ async function fetchDetail() {
 
 async function checkCollect() {
   try {
-    const res = await request.get('/interaction/collect/status', {
-      params: { mangaId: route.params.id }
-    })
+    const res = await interactionApi.getCollectStatus(route.params.id)
     isCollected.value = res.data?.collected || false
   } catch (e) {
   }
@@ -147,9 +146,7 @@ async function checkCollect() {
 
 async function checkUserScore() {
   try {
-    const res = await request.get('/interaction/score/current', {
-      params: { mangaId: route.params.id }
-    })
+    const res = await interactionApi.getUserScore(route.params.id)
     if (res.data?.score) {
       scoreValue.value = res.data.score
     }
@@ -159,7 +156,7 @@ async function checkUserScore() {
 
 async function handleRead() {
   try {
-    const res = await request.get(`/manga/${route.params.id}/chapters`)
+    const res = await mangaApi.getChapters(route.params.id)
     chapters.value = res.data || []
     showChaptersDialog.value = true
   } catch (e) {
@@ -170,7 +167,7 @@ async function handleRead() {
 async function selectChapter(chapter) {
   selectedChapter.value = chapter
   try {
-    await request.post(`/manga/${route.params.id}/chapters/${chapter.id}/read`)
+    await mangaApi.recordRead(route.params.id, chapter.id)
     ElMessage.success(`正在阅读: ${chapter.title}`)
   } catch (e) {
   }
@@ -185,10 +182,10 @@ async function handleCollect() {
   isCollected.value = !isCollected.value
   try {
     if (action === 'add') {
-      await request.post('/interaction/collect', { mangaId: route.params.id })
+      await interactionApi.collect({ mangaId: route.params.id })
       ElMessage.success('已加入书架')
     } else {
-      await request.delete('/interaction/collect', { params: { mangaId: route.params.id } })
+      await interactionApi.uncollect(route.params.id)
       ElMessage.success('已从书架移除')
     }
   } catch (e) {
@@ -208,7 +205,7 @@ function submitScore() {
 async function confirmScore() {
   showScoreDialog.value = false
   try {
-    await request.post('/interaction/score', {
+    await interactionApi.score({
       mangaId: route.params.id,
       score: scoreValue.value
     })

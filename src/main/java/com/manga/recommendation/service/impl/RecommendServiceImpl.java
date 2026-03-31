@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.function.Function;
 
 @Service
 public class RecommendServiceImpl implements RecommendService {
@@ -76,21 +78,12 @@ public class RecommendServiceImpl implements RecommendService {
         }
 
         List<MangaInfo> sortedManga = new ArrayList<>(allManga);
-        for (int i = 0; i < sortedManga.size() - 1; i++) {
-            for (int j = 0; j < sortedManga.size() - i - 1; j++) {
-                Long idA = sortedManga.get(j).getId();
-                Long idB = sortedManga.get(j + 1).getId();
-                Float scoreA = avgScoreMap.get(idA);
-                Float scoreB = avgScoreMap.get(idB);
-                if (scoreA == null) scoreA = 0.0f;
-                if (scoreB == null) scoreB = 0.0f;
-                if (scoreA < scoreB || (scoreA.equals(scoreB) && idA > idB)) {
-                    MangaInfo temp = sortedManga.get(j);
-                    sortedManga.set(j, sortedManga.get(j + 1));
-                    sortedManga.set(j + 1, temp);
-                }
-            }
-        }
+        sortedManga.sort((a, b) -> {
+            Float scoreA = avgScoreMap.getOrDefault(a.getId(), 0.0f);
+            Float scoreB = avgScoreMap.getOrDefault(b.getId(), 0.0f);
+            int compare = scoreB.compareTo(scoreA);
+            return compare != 0 ? compare : b.getId().compareTo(a.getId());
+        });
 
         int size = Math.min(ZONE_SIZE, sortedManga.size());
         return convertToVOList(sortedManga.subList(0, size));
@@ -102,9 +95,19 @@ public class RecommendServiceImpl implements RecommendService {
             return getDefaultCategoryManga();
         }
 
+        // 收集所有mangaId
+        List<Long> mangaIds = userScores.stream()
+                .map(MangaScore::getMangaId)
+                .collect(Collectors.toList());
+
+        // 批量查询
+        List<MangaInfo> mangas = mangaInfoMapper.selectBatchIds(mangaIds);
+        Map<Long, MangaInfo> mangaMap = mangas.stream()
+                .collect(Collectors.toMap(MangaInfo::getId, Function.identity()));
+
         Map<String, Integer> categoryCountMap = new HashMap<>();
         for (MangaScore score : userScores) {
-            MangaInfo manga = mangaInfoMapper.selectById(score.getMangaId());
+            MangaInfo manga = mangaMap.get(score.getMangaId());
             if (manga != null && manga.getCategory() != null) {
                 String category = manga.getCategory();
                 categoryCountMap.put(category, categoryCountMap.getOrDefault(category, 0) + 1);
@@ -141,9 +144,23 @@ public class RecommendServiceImpl implements RecommendService {
 
         List<RecommendResult> results = recommendResultMapper.selectList(queryWrapper);
 
+        if (results.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 收集所有mangaId
+        List<Long> mangaIds = results.stream()
+                .map(RecommendResult::getMangaId)
+                .collect(Collectors.toList());
+
+        // 批量查询
+        List<MangaInfo> mangas = mangaInfoMapper.selectBatchIds(mangaIds);
+        Map<Long, MangaInfo> mangaMap = mangas.stream()
+                .collect(Collectors.toMap(MangaInfo::getId, Function.identity()));
+
         List<MangaVO> voList = new ArrayList<>();
         for (RecommendResult result : results) {
-            MangaInfo manga = mangaInfoMapper.selectById(result.getMangaId());
+            MangaInfo manga = mangaMap.get(result.getMangaId());
             if (manga != null) {
                 MangaVO vo = new MangaVO();
                 BeanUtils.copyProperties(manga, vo);
