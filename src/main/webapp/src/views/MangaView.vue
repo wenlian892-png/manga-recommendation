@@ -15,15 +15,8 @@
     <div v-if="loading" class="loading">加载中...</div>
     <div v-else-if="list.length === 0" class="empty">暂无数据</div>
     <div v-else class="manga-grid">
-      <div v-for="item in list" :key="item.id" class="manga-card" @click="goDetail(item.id)">
-        <img :src="item.coverUrl || '/placeholder.png'" class="manga-cover" />
-        <div class="manga-info">
-          <h3 class="manga-title">{{ item.title }}</h3>
-          <p class="manga-author">{{ item.author }}</p>
-          <p class="manga-category">{{ item.category }}</p>
+          <MangaCard v-for="item in list" :key="item.id" :manga="item" />
         </div>
-      </div>
-    </div>
 
     <div class="pagination">
       <el-pagination
@@ -41,10 +34,11 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import request from '@/utils/request'
+import { useRoute } from 'vue-router'
+import { mangaApi } from '@/api/manga'
+import { ElMessage } from 'element-plus'
+import MangaCard from '@/components/MangaCard.vue'
 
-const router = useRouter()
 const route = useRoute()
 
 const COMMON_CATEGORIES = ['热血', '恋爱', '冒险', '悬疑', '运动']
@@ -66,27 +60,26 @@ const pagination = reactive({
 async function fetchList() {
   loading.value = true
   try {
-    const res = await request.get('/manga/page', {
-      params: {
-        current: pagination.current,
-        size: pagination.size,
-        title: filters.title || null,
-        author: filters.author || null,
-        category: filters.category || null
-      }
+    const res = await mangaApi.getMangaPage({
+      current: pagination.current,
+      size: pagination.size,
+      title: filters.title || null,
+      author: filters.author || null,
+      category: filters.category || null
     })
     list.value = res.data.records || []
     pagination.total = res.data.total || 0
   } catch (e) {
-    console.error(e)
+    console.error('获取漫画列表失败:', e)
+    ElMessage.error('获取漫画列表失败，请稍后重试')
+    list.value = []
+    pagination.total = 0
   } finally {
     loading.value = false
   }
 }
 
-function goDetail(id) {
-  router.push({ name: 'MangaDetail', params: { id } })
-}
+
 
 onMounted(() => {
   if (route.query.keyword) {
@@ -171,5 +164,29 @@ onMounted(() => {
   margin-top: 30px;
   display: flex;
   justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .manga-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .page-header h1 {
+    font-size: 24px;
+  }
+  
+  .filters {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .filters .el-input,
+  .filters .el-select {
+    width: 100% !important;
+  }
+  
+  .filters .el-button {
+    width: 100%;
+  }
 }
 </style>

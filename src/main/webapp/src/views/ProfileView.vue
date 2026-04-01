@@ -42,8 +42,8 @@
             <p>暂无评分记录</p>
           </div>
           <div v-else class="item-list">
-            <div v-for="item in userScores" :key="item.scoreId" class="item-card" @click="goManga(item.mangaId)">
-              <img :src="item.mangaCover || '/placeholder.png'" class="item-cover" />
+            <button v-for="item in userScores" :key="item.scoreId" class="item-card" @click="goManga(item.mangaId)" type="button">
+              <img :src="item.mangaCover || '/placeholder.png'" :alt="item.mangaTitle || '漫画封面'" class="item-cover" loading="lazy" width="60" height="80" />
               <div class="item-info">
                 <h3 class="item-title">{{ item.mangaTitle }}</h3>
                 <div class="item-meta">
@@ -51,7 +51,7 @@
                   <span class="item-date">{{ formatDate(item.createTime) }}</span>
                 </div>
               </div>
-            </div>
+            </button>
           </div>
         </div>
       </el-tab-pane>
@@ -62,13 +62,13 @@
             <p>暂无收藏</p>
           </div>
           <div v-else class="item-grid">
-            <div v-for="item in userCollections" :key="item.mangaId" class="manga-card" @click="goManga(item.mangaId)">
-              <img :src="item.mangaCover || '/placeholder.png'" class="manga-cover" />
+            <button v-for="item in userCollections" :key="item.mangaId" class="manga-card" @click="goManga(item.mangaId)" type="button">
+              <img :src="item.mangaCover || '/placeholder.png'" :alt="item.mangaTitle || '漫画封面'" class="manga-cover" loading="lazy" width="200" height="200" />
               <div class="manga-info">
                 <h3 class="manga-title">{{ item.mangaTitle }}</h3>
                 <el-tag size="small">{{ item.category }}</el-tag>
               </div>
-            </div>
+            </button>
           </div>
         </div>
       </el-tab-pane>
@@ -79,14 +79,14 @@
             <p>暂无阅读记录</p>
           </div>
           <div v-else class="item-list">
-            <div v-for="item in readHistory" :key="item.mangaId + '-' + item.readTime" class="item-card history-card" @click="goManga(item.mangaId)">
-              <img :src="item.mangaCover || '/placeholder.png'" class="item-cover" />
+            <button v-for="item in readHistory" :key="item.mangaId + '-' + item.readTime" class="item-card history-card" @click="goManga(item.mangaId)" type="button">
+              <img :src="item.mangaCover || '/placeholder.png'" :alt="item.mangaTitle || '漫画封面'" class="item-cover" loading="lazy" width="60" height="80" />
               <div class="item-info">
                 <h3 class="item-title">{{ item.mangaTitle }}</h3>
                 <p class="item-chapter">阅读至: {{ item.chapterTitle || '第一章' }}</p>
                 <span class="item-date">{{ formatDate(item.readTime) }}</span>
               </div>
-            </div>
+            </button>
           </div>
         </div>
       </el-tab-pane>
@@ -257,6 +257,9 @@ onMounted(() => {
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s;
+  border: none;
+  text-align: left;
+  width: 100%;
 }
 
 .item-card:hover {
@@ -314,6 +317,10 @@ onMounted(() => {
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
+  border: none;
+  text-align: left;
+  width: 100%;
+  padding: 0;
 }
 
 .manga-card:hover {

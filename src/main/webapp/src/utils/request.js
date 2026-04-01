@@ -11,6 +11,9 @@ request.interceptors.request.use(config => {
   if (user.id) {
     config.headers['X-User-Id'] = user.id
   }
+  if (user.token) {
+    config.headers['Authorization'] = 'Bearer ' + user.token
+  }
   return config
 })
 
